@@ -4,9 +4,7 @@ extension on _HomeShellState {
   List<Widget> home(BuildContext context) {
     final first = (student['name'] as String).split(' ').first;
     final next = nextLesson;
-    final nextContent = next == null
-        ? null
-        : packFor(next);
+    final nextContent = next == null ? null : packFor(next);
     final recent = recentAchievement;
     final challenge = quickChallenge;
 
@@ -99,9 +97,9 @@ extension on _HomeShellState {
       Text(
         "Ready for today's safety quest?",
         style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-              fontWeight: FontWeight.w800,
-              height: 1.15,
-            ),
+          fontWeight: FontWeight.w800,
+          height: 1.15,
+        ),
       ),
       const SizedBox(height: 22),
 
@@ -122,6 +120,25 @@ extension on _HomeShellState {
       const SizedBox(height: 22),
 
       // 3. Quick Challenge
+      ClayCard(
+        color: QuestColors.peach,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Random emergency drill',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Practice alerts can appear while you are on Home. Try one now — simulation only.',
+            ),
+            const SizedBox(height: 12),
+            QuestButton('Try random drill', onPressed: offerEmergencyDrill),
+          ],
+        ),
+      ),
+      const SizedBox(height: 22),
       sectionTitle(context, 'A short hidden-object drill', 'QUICK CHALLENGE'),
       const SizedBox(height: 12),
       quickChallengeCard(context, challenge),
@@ -194,7 +211,10 @@ extension on _HomeShellState {
 
   /// Prefer a lesson with a findHazards / findObject step for the challenge.
   Map<String, dynamic>? get quickChallenge {
-    for (final lesson in [...lessons.where((l) => l['completed'] != true), ...lessons]) {
+    for (final lesson in [
+      ...lessons.where((l) => l['completed'] != true),
+      ...lessons,
+    ]) {
       final c = packFor(lesson);
       if (c == null) continue;
       final hasFind = c.simulation.any(
@@ -267,8 +287,8 @@ extension on _HomeShellState {
             content == null
                 ? 'See details'
                 : learned
-                    ? 'Continue Quest'
-                    : 'Start Quest',
+                ? 'Continue Quest'
+                : 'Start Quest',
             onPressed: () => openLesson(lesson),
             icon: PhosphorIconsBold.arrowRight,
           ),
@@ -281,8 +301,7 @@ extension on _HomeShellState {
     BuildContext context,
     Map<String, dynamic>? lesson,
   ) {
-    final content =
-        lesson == null ? null : packFor(lesson);
+    final content = lesson == null ? null : packFor(lesson);
     return ClayCard(
       color: QuestColors.yellow,
       padding: const EdgeInsets.all(18),
@@ -292,10 +311,7 @@ extension on _HomeShellState {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Moving(
-                motion: Motion.float,
-                child: const Magnifier3D(size: 60),
-              ),
+              Moving(motion: Motion.float, child: const Magnifier3D(size: 60)),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
@@ -743,7 +759,10 @@ extension on _HomeShellState {
               const Spacer(),
               const SizedBox(height: 12),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(99),
@@ -775,5 +794,4 @@ extension on _HomeShellState {
       ),
     );
   }
-
 }

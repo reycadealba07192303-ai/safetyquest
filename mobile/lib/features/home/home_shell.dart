@@ -1,4 +1,8 @@
+import 'dart:async';
+import 'dart:math';
+
 import 'package:flutter/material.dart';
+import 'package:safetyquest_mobile/features/home/emergency_drill.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:safetyquest_mobile/core/theme/magnifier_3d.dart';
@@ -22,10 +26,8 @@ part 'profile_tab.dart';
 part 'home_shared.dart';
 part 'home_nav.dart';
 
-LessonContent? packFor(Map lesson) => contentFor(
-  lesson['name'] as String? ?? '',
-  key: lesson['key'] as String?,
-);
+LessonContent? packFor(Map lesson) =>
+    contentFor(lesson['name'] as String? ?? '', key: lesson['key'] as String?);
 
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key, required this.api, required this.onSignedOut});
@@ -43,8 +45,78 @@ class _HomeShellState extends State<HomeShell> {
   bool actionBusy = false;
   String filter = 'All';
   Map<int, LessonProgress> progress = {};
+
   /// Posts this student has already opened on this phone.
   Set<String> seenPosts = {};
+  final Random _random = Random();
+  Timer? _drillTimer;
+  bool _drillOffered = false;
+  bool _drillOpen = false;
+  SimStep? _lastDrill;
+
+  void _scheduleDrill() {
+    if (_drillOffered || _drillTimer != null) return;
+    _drillTimer = Timer(Duration(seconds: 120 + _random.nextInt(181)), () {
+      _drillTimer = null;
+      if (!mounted) return;
+      if (data == null ||
+          tab != 0 ||
+          WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed ||
+          ModalRoute.of(context)?.isCurrent != true) {
+        _scheduleDrill();
+        return;
+      }
+      _drillOffered = true;
+      offerEmergencyDrill();
+    });
+  }
+
+  Future<void> offerEmergencyDrill() async {
+    if (_drillOpen) return;
+    _drillOpen = true;
+    final pool = [
+      for (final lesson in lessonCatalog)
+        for (final step in lesson.simulation)
+          if (!identical(step, _lastDrill)) step,
+    ];
+    final step = pool[_random.nextInt(pool.length)];
+    _lastDrill = step;
+    try {
+      final start = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Practice emergency alert'),
+          content: Text(
+            'SIMULATION ONLY — not a real emergency.\n\n'
+            '${step.alert}\n\nTry a short random drill? This does not affect your school scores or tries.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Later'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Start drill'),
+            ),
+          ],
+        ),
+      );
+      if (start == true && mounted) {
+        await Navigator.of(context).push<void>(
+          MaterialPageRoute(builder: (_) => EmergencyDrill(step: step)),
+        );
+      }
+    } finally {
+      _drillOpen = false;
+    }
+  }
+
+  @override
+  void dispose() {
+    _drillTimer?.cancel();
+    super.dispose();
+  }
 
   /// Extensions on this State cannot call protected [setState]; use this.
   void rebuild(VoidCallback fn) => setState(fn);
@@ -139,6 +211,7 @@ class _HomeShellState extends State<HomeShell> {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) _maybeRemindPendingLessons(next);
         });
+        _scheduleDrill();
       }
     } on ApiException catch (e) {
       if (e.status == 401 || e.status == 403) {
@@ -337,6 +410,7 @@ class _HomeShellState extends State<HomeShell> {
         ? 'Good afternoon'
         : 'Good evening';
   }
+
   List<Map<String, dynamic>> get lessons =>
       (data!['lessons'] as List).cast<Map<String, dynamic>>();
   int get completed => (student['completed'] as num).toInt();
@@ -350,11 +424,7 @@ class _HomeShellState extends State<HomeShell> {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [
-            Color(0xFFFFFBF7),
-            QuestColors.paper,
-            Color(0xFFF5EFE8),
-          ],
+          colors: [Color(0xFFFFFBF7), QuestColors.paper, Color(0xFFF5EFE8)],
         ),
       ),
       child: SafeArea(
@@ -442,7 +512,6 @@ class _HomeShellState extends State<HomeShell> {
       onSelect: selectTab,
     ),
   );
-
 
   Future<void> openLesson(Map<String, dynamic> lesson) async {
     final content = packFor(lesson);

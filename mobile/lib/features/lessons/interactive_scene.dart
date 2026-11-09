@@ -1,5 +1,4 @@
 import 'dart:math' as math;
-import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -116,11 +115,14 @@ class _HotspotImage extends StatefulWidget {
 }
 
 class _HotspotImageState extends State<_HotspotImage> {
-  ui.Image? _decoded;
+  Size? _imageSize;
+  ImageStream? _stream;
+  ImageStreamListener? _listener;
+  int _imageRevision = 0;
 
   @override
-  void initState() {
-    super.initState();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
     _load();
   }
 
@@ -130,16 +132,33 @@ class _HotspotImageState extends State<_HotspotImage> {
     if (old.asset != widget.asset) _load();
   }
 
-  Future<void> _load() async {
-    try {
-      final data = await rootBundle.load(widget.asset);
-      final codec = await ui.instantiateImageCodec(data.buffer.asUint8List());
-      final frame = await codec.getNextFrame();
-      if (!mounted) return;
-      setState(() => _decoded = frame.image);
-    } catch (_) {
-      if (mounted) setState(() => _decoded = null);
-    }
+  void _load() {
+    if (_listener != null) _stream?.removeListener(_listener!);
+    _imageSize = null;
+    // Share Image.asset's cache instead of decoding a second full-size image.
+    _stream = AssetImage(
+      widget.asset,
+    ).resolve(createLocalImageConfiguration(context));
+    _listener = ImageStreamListener(
+      (info, _) {
+        final size = Size(
+          info.image.width.toDouble(),
+          info.image.height.toDouble(),
+        );
+        info.dispose();
+        if (mounted) setState(() => _imageSize = size);
+      },
+      onError: (Object error, StackTrace? stack) {
+        if (mounted) setState(() => _imageSize = null);
+      },
+    );
+    _stream!.addListener(_listener!);
+  }
+
+  @override
+  void dispose() {
+    if (_listener != null) _stream?.removeListener(_listener!);
+    super.dispose();
   }
 
   Size _cover(Size src, Size max) {
@@ -153,9 +172,7 @@ class _HotspotImageState extends State<_HotspotImage> {
     Widget body = LayoutBuilder(
       builder: (context, constraints) {
         final max = Size(constraints.maxWidth, constraints.maxHeight);
-        final src = _decoded == null
-            ? max
-            : Size(_decoded!.width.toDouble(), _decoded!.height.toDouble());
+        final src = _imageSize ?? max;
         // Cover the stage so objects read large (hidden-object feel).
         final painted = _cover(src, max);
         final dx = (max.width - painted.width) / 2;
@@ -171,9 +188,29 @@ class _HotspotImageState extends State<_HotspotImage> {
                 height: painted.height,
                 child: Image.asset(
                   widget.asset,
+                  key: ValueKey('${widget.asset}:$_imageRevision'),
                   fit: BoxFit.fill,
                   filterQuality: FilterQuality.medium,
-                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                  errorBuilder: (_, __, ___) => Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text('The scene image could not load.'),
+                        TextButton(
+                          onPressed: () async {
+                            await AssetImage(widget.asset).evict();
+                            if (mounted) {
+                              setState(() {
+                                _imageRevision++;
+                                _load();
+                              });
+                            }
+                          },
+                          child: const Text('Retry image'),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
               // Removable hazard stickers — disappear when found.
@@ -201,7 +238,10 @@ class _HotspotImageState extends State<_HotspotImage> {
                     label: spot.label,
                     found: widget.found.contains(spot.id),
                     missed: widget.missId == spot.id,
-                    enabled: widget.enabled && !widget.found.contains(spot.id),
+                    enabled:
+                        _imageSize != null &&
+                        widget.enabled &&
+                        !widget.found.contains(spot.id),
                     onTap: () => widget.onTap?.call(spot.id),
                   ),
                 ),
@@ -469,11 +509,15 @@ class SimulationFeedback extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
             decoration: BoxDecoration(
-              color: (good ? QuestColors.mint : QuestColors.peach)
-                  .withValues(alpha: .55),
+              color: (good ? QuestColors.mint : QuestColors.peach).withValues(
+                alpha: .55,
+              ),
               borderRadius: BorderRadius.circular(12),
               border: Border(
-                left: BorderSide(color: accent.withValues(alpha: .55), width: 3),
+                left: BorderSide(
+                  color: accent.withValues(alpha: .55),
+                  width: 3,
+                ),
               ),
             ),
             child: Column(
