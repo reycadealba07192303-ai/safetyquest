@@ -61,7 +61,7 @@ jobs:
       - name: Verify packaged web media
         run: python3 tool/check_media.py build/web/assets/assets build/web/icons
 
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: mobile/build/web
 
@@ -73,4 +73,29 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
+
+      - name: Verify live onboarding image
+        env:
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+        run: |
+          python3 - <<'PY'
+          import os
+          import time
+          import urllib.request
+
+          url = os.environ['PAGE_URL'].rstrip('/') + '/assets/assets/cool_student.png'
+          for attempt in range(6):
+              try:
+                  request = urllib.request.Request(url + '?verify=' + os.environ['GITHUB_SHA'])
+                  with urllib.request.urlopen(request, timeout=30) as response:
+                      signature = response.read(8)
+                  if signature == b'\x89PNG\r\n\x1a\n':
+                      print('Live onboarding image is a real PNG:', url)
+                      break
+                  raise RuntimeError('Live image is not a PNG; it may still be an LFS pointer')
+              except Exception:
+                  if attempt == 5:
+                      raise
+                  time.sleep(10)
+          PY
