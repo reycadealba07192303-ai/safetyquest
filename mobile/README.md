@@ -42,6 +42,11 @@ answer it and return Home. Confirm school scores and tries remain unchanged.
 
 ## iPhone web image verification
 
+GitHub Actions must check out with `lfs: true`: student images and videos are
+stored in Git LFS. Without it, Flutter packages small text pointer files as
+images and the deployed browser cannot decode them. `tool/check_media.py`
+rejects unresolved pointers in source media and in the built web artifact.
+
 Interactive scenes share Flutter's image cache for dimensions and display rather
 than decoding a second full-size copy. Image listeners release their resources
 when a scene changes or closes. Failed scene images show a retry action and do

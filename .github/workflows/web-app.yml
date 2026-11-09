@@ -34,6 +34,11 @@ jobs:
         working-directory: mobile
     steps:
       - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Verify media files were downloaded
+        run: python3 tool/check_media.py
 
       - uses: subosito/flutter-action@v2
         with:
@@ -52,6 +57,9 @@ jobs:
 
       - name: Build for the web
         run: flutter build web --release --base-href "/${{ github.event.repository.name }}/" --dart-define=API_BASE_URL=${{ vars.API_BASE_URL }}
+
+      - name: Verify packaged web media
+        run: python3 tool/check_media.py build/web/assets/assets build/web/icons
 
       - uses: actions/upload-pages-artifact@v3
         with:
