@@ -24,7 +24,8 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: true
+  # Let Pages finish syncing before starting a newer publish.
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -54,6 +55,9 @@ jobs:
           fi
 
       - run: flutter pub get
+
+      - name: Verify emergency calling and practice flows
+        run: flutter test test/emergency_call_test.dart test/emergency_drill_test.dart
 
       - name: Build for the web
         run: flutter build web --release --base-href "/${{ github.event.repository.name }}/" --dart-define=API_BASE_URL=${{ vars.API_BASE_URL }}
