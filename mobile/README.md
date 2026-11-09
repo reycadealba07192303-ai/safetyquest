@@ -47,6 +47,13 @@ stored in Git LFS. Without it, Flutter packages small text pointer files as
 images and the deployed browser cannot decode them. `tool/check_media.py`
 rejects unresolved pointers in source media and in the built web artifact.
 
+The Pages workflow runs `tool/package_web.py` after building. It moves assets
+and the JavaScript entrypoint under `releases/<commit>/` and configures Flutter's
+asset base accordingly. Bootstrap code is embedded in the HTML so each release
+requests new image URLs instead of reusing previously cached LFS pointer responses.
+For a local packaged build, set `GITHUB_SHA` to a commit hash before running the
+packager; plain `flutter build web` continues to work without packaging.
+
 Interactive scenes share Flutter's image cache for dimensions and display rather
 than decoding a second full-size copy. Image listeners release their resources
 when a scene changes or closes. Failed scene images show a retry action and do

@@ -61,6 +61,9 @@ jobs:
       - name: Verify packaged web media
         run: python3 tool/check_media.py build/web/assets/assets build/web/icons
 
+      - name: Version browser assets to avoid stale image caches
+        run: python3 tool/package_web.py
+
       - uses: actions/upload-pages-artifact@v5
         with:
           path: mobile/build/web
@@ -84,7 +87,7 @@ jobs:
           import time
           import urllib.request
 
-          url = os.environ['PAGE_URL'].rstrip('/') + '/assets/assets/cool_student.png'
+          url = os.environ['PAGE_URL'].rstrip('/') + '/releases/' + os.environ['GITHUB_SHA'] + '/assets/assets/cool_student.png'
           for attempt in range(6):
               try:
                   request = urllib.request.Request(url + '?verify=' + os.environ['GITHUB_SHA'])
