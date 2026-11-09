@@ -29,6 +29,12 @@ pick up a new value). The address ships inside the app, so it is public.
 
 ## Random emergency practice
 
+Home also has **Emergency — Call 911** for real emergencies. After confirmation,
+it hands `tel:911` to the device's phone app (in the current tab on web). The
+phone/browser controls the final call prompt; devices without calling support
+may not handle telephone links. This action is separate from practice alerts.
+Tests use a mock dialer and never place emergency calls.
+
 After state loads, a practice alert is scheduled after a random 2–5 minutes.
 It is offered once per signed-in HomeShell session, only while Home is visible
 and the app is active. If a lesson or dialog is open, it waits another random

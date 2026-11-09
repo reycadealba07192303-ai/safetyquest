@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:safetyquest_mobile/features/home/emergency_drill.dart';
+import 'package:safetyquest_mobile/features/home/emergency_call_card.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:safetyquest_mobile/core/theme/magnifier_3d.dart';

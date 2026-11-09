@@ -104,6 +104,8 @@ extension on _HomeShellState {
       const SizedBox(height: 22),
 
       // 2. Today's Quest
+      const EmergencyCallCard(),
+      const SizedBox(height: 22),
       sectionTitle(context, 'Pick up where you left off', "TODAY'S QUEST"),
       const SizedBox(height: 12),
       if (next == null)
